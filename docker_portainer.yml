@@ -1,0 +1,47 @@
+---
+- name: Install Docker and Docker-Compose
+  hosts: dev.demo.oldbaku.net
+  become: true
+  tasks:
+    - name: Install prerequisites
+      apt:
+        name: ['apt-transport-https', 'ca-certificates', 'curl', 'software-properties-common']
+
+    - name: Add Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker repository
+      apt_repository:
+        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable
+        state: present
+
+    - name: Update APT cache
+      apt:
+        update_cache: yes
+
+    - name: Install Docker and Docker-Compose
+      apt:
+        name: ['docker-ce', 'docker-compose']
+        state: present
+
+- name: Deploy Portainer
+  hosts: docker_hosts[0]
+  become: true
+  tasks:
+    - name: Create Portainer data volume
+      docker_volume:
+        name: portainer_data
+
+    - name: Deploy Portainer container
+      docker_container:
+        name: portainer
+        image: portainer/portainer
+        restart_policy: always
+        ports:
+          - "9000:9000"
+        volumes:
+          - /var/run/docker.sock:/var/run/docker.sock
+          - portainer_data:/data
+
